@@ -7,6 +7,9 @@ from psycopg2 import OperationalError
 from datetime import datetime
 #from utils.general import LOGGER
 import tempfile
+import logging
+logging.basicConfig(filename='db.log', filemode='w', level=logging.DEBUG)
+
 def is_valid_date_format(s):
     try:
         datetime.strptime(s, '%Y-%m-%d')
@@ -97,7 +100,7 @@ class DB():
                 #print(str(datetime.now().date()))
                 self.cur.execute(query, (est_id, realdate, baseinfo, str(datetime.now().date())))
                 self.con.commit()
-                LOGGER.info(
+                logging.info(
                     str(datetime.now())[:-7] + f' Added report for {est_name} and date {realdate}')
 
     def update_base_report(self, est_name, realdate, baseinfo=None):
@@ -112,7 +115,7 @@ class DB():
             if est_id is not None:
                 self.cur.execute(query, (baseinfo, est_id, realdate))
                 self.con.commit()
-                LOGGER.info(str(datetime.now())[:-7] + f' Updated BASEINFO for {est_name} and date {realdate}')
+                logging.info(str(datetime.now())[:-7] + f' Updated BASEINFO for {est_name} and date {realdate}')
 
     def get_est_info_by_name(self, est_name):
         self.cur.execute(f'SELECT * FROM establishments WHERE "NAME" = \'{est_name}\'')
@@ -185,7 +188,7 @@ class DB():
         except:
             return "Ошибка"
 
-        LOGGER.info(str(datetime.now()) + f' Added user_id - {user_id} and est_id - {est_id} for telegram_id - {telegram_id}')
+        logging.info(str(datetime.now()) + f' Added user_id - {user_id} and est_id - {est_id} for telegram_id - {telegram_id}')
         return "success"
 
     def get_users_list_for_est(self, est_name ):
