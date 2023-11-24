@@ -51,7 +51,7 @@ class ReportsTableWidget(QWidget):
         # Добавляем горизонтальный макет с элементами выбора даты в основной макет
 
 
-        self.button = QPushButton("Нажми меня", self)
+        self.button = QPushButton("Поиск", self)
         hbox_dates.addWidget(self.button)
 
         # Подключение кнопки к обработчику
@@ -568,7 +568,7 @@ class EstablishmentsTableWidget(QTableWidget):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Firebird Database Viewer")
+        self.setWindowTitle("OKO AI Database Viewer")
         self.resize(1000, 600)
         # Tab widget
         self.tab_widget = QTabWidget(self)
