@@ -81,6 +81,9 @@ class ReportsTableWidget(QWidget):
         rows = db.cur.fetchall()
 
         self.table.setRowCount(len(rows))
+        if rows == None or len(rows) == 0:
+            return
+
         self.table.setColumnCount(len(rows[0]))
         for row_index, row in enumerate(rows):
             for col_index, data in enumerate(row):
