@@ -1,4 +1,4 @@
-
+import os.path
 import sys
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QTableWidget, QTableWidgetItem, QWidget, QDateEdit, QHBoxLayout, QFileDialog,
                              QVBoxLayout, QPushButton, QInputDialog, QTabWidget, QDialog, QMenu, QLineEdit, QLabel, QMessageBox, QComboBox)
@@ -8,10 +8,17 @@ from datetime import datetime
 import telebot
 bot = telebot.TeleBot('6560876647:AAGZXlZDeCazV8vQ9Wf6NZlqpJV7enc1olM')
 
-# Глобальные настройки подключения к базе данных
-#DB_PATH = r'10.100.94.60:C:\Users\oleg.kalinin\Documents\VISION.FDB'
-#DB_USER = 'SYSDBA'
-#DB_PASS = 'root'
+import re
+
+
+def extract_info_from_string(s):
+    pattern = r'^(?P<name>[a-zA-Z\s]+)\s+(?P<date>\d{4}-\d{2}-\d{2})\.pdf$'
+    match = re.match(pattern, s)
+
+    if match:
+        return True, match.group('name').strip(), match.group('date')
+    else:
+        return False, None, None
 
 
 class ReportsTableWidget(QWidget):
@@ -156,23 +163,42 @@ class ReportsTableWidget(QWidget):
         row = self.table.currentRow()
         if row == -1:
             return
-        # В вашем методе/функции:
-        file_name, _ = QFileDialog.getOpenFileName(self, "Open File", "", "All Files (*);;Text Files (*.txt)")
+
+        file_name, _ = QFileDialog.getOpenFileName(self, "Open File", "", "All Files (*);;Text Files (*.pdf)")
+
         if not file_name:
             return  # пользователь отменил выбор файла
+
+        res, est_name_in_file, rep_date_in_file = extract_info_from_string(os.path.basename(file_name))
+        if res == False:
+            print(f"Ошибка: имя отчёта не соответствует шаблону: ИМЯ ГГГГ-ММ-ДД.")
+            return
+
+        est_name = str(
+            self.table.item(row, 1).text())
+        if est_name != est_name_in_file:
+            print("ОШИБКА: Имя заведения из файла не соответствует выбранному заведению для отправки отчёта")
+            return
+
+        date_rep = str(
+            self.table.item(row, 2).text())
+
+        if date_rep != rep_date_in_file:
+            print("ОШИБКА: Дата указанная в файле и реальная дата отчёта не совпадают")
+            return
+
         with open(file_name, 'rb') as file:
             file_data = file.read()
         db = DB()
         report_id = int(
             self.table.item(row, 0).text())
+
         query = """UPDATE REPORT SET FULLINFO = %s, FULL_DONE = %s WHERE REPORT_ID = %s"""
         data = (file_data, str(datetime.now().date()), report_id)
         db.cur.execute(query, data)
         db.con.commit()
         self.refresh_table()
 
-        est_name = str(
-            self.table.item(row, 1).text())
         users = db.get_users_list_for_est(est_name)
         for user in users:
             if user is None:
@@ -180,6 +206,7 @@ class ReportsTableWidget(QWidget):
             tg_id = db.get_telegram_id(user)
             print(tg_id)
             with open(file_name, 'rb') as doc:
+                bot.send_message(tg_id,f"Вам надіслано звіт оператора для закладу {est_name_in_file} за дату {date_rep}" )
                 bot.send_document(tg_id, doc)
 
     def edit_record(self):
