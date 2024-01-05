@@ -1,7 +1,7 @@
 import os.path
 import sys
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QTableWidget, QTableWidgetItem, QWidget, QDateEdit, QHBoxLayout, QFileDialog,
-                             QVBoxLayout, QPushButton, QInputDialog, QTabWidget, QDialog, QMenu, QLineEdit, QLabel, QMessageBox, QComboBox)
+                             QVBoxLayout, QPushButton, QInputDialog, QTabWidget, QDialog, QMenu, QLineEdit, QLabel, QMessageBox, QComboBox, QTextEdit)
 from PyQt5.QtCore import Qt
 from db import DB
 from datetime import datetime
@@ -9,6 +9,50 @@ import telebot
 bot = telebot.TeleBot('6560876647:AAGZXlZDeCazV8vQ9Wf6NZlqpJV7enc1olM')
 
 import re
+
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import random
+import string
+
+def generate_password(length=12, include_digits=True, include_special_chars=True):
+    # Символы для формирования пароля (буквы верхнего и нижнего регистра по умолчанию)
+    characters = string.ascii_letters
+
+    # Добавление цифр
+    if include_digits:
+        characters += string.digits
+
+    # Добавление специальных символов
+    if include_special_chars:
+        characters += string.punctuation
+
+    # Генерация пароля
+    password = ''.join(random.choice(characters) for _ in range(length))
+    return password
+
+def is_valid_email(text):
+    email_pattern = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+
+    # Проверка текста на соответствие регулярному выражению
+    return bool(re.match(email_pattern, text))
+
+def send_email(to_email, message_test):
+    from_email = "sysinfookoai@gmail.com"
+    password = 'ozti ehbb wvkp biaq'
+
+    msg = MIMEMultipart()
+    msg['From'] = from_email
+    msg['To'] = to_email
+    msg['Subject'] = "Логін і пароль OKOAI"
+    msg.attach(MIMEText(message_test, 'plain'))
+    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server.starttls()
+    server.login(from_email, password)
+    text = msg.as_string()
+    server.sendmail(from_email, to_email, text)
+    server.quit()
 
 
 def extract_info_from_string(s):
@@ -300,6 +344,9 @@ class UsersTableWidget(QTableWidget):
             role = self.role_combo.currentText().split(' ')[0]
             tg_input = self.tg_input.text()
 
+            if is_valid_email(login) is False:
+                print("ОШИБКА: Логин не является валидным email")
+                return
             # Добавление записи в таблицу ESTABLISHMENTS
             db.cur.execute(f"INSERT INTO USERS (\"NAME\", login, ROLE_ID, PASS, telegram_id) VALUES"
                         f" ('{name}', '{login}', '{role}', '{passw}', '{tg_input}')")
@@ -346,7 +393,7 @@ class UsersTableWidget(QTableWidget):
 
         # Добавьте аналогичные виджеты для всех других полей
 
-        submit_button = QPushButton("Применить", dialog)
+        submit_button = QPushButton("Отправить", dialog)
         submit_button.clicked.connect(dialog.accept)
         layout.addWidget(submit_button)
 
@@ -360,6 +407,9 @@ class UsersTableWidget(QTableWidget):
             role = self.role_combo.currentText().split(' ')[0]
             tg_id = self.tg_input.text()
 
+            if is_valid_email(login) is False:
+                print("ОШИБКА: Логин не является валидным email")
+                return
             # Добавление записи в таблицу ESTABLISHMENTS
             user_id = int(
                 self.item(row, 0).text())
@@ -419,6 +469,7 @@ class EstablishmentsTableWidget(QTableWidget):
         add_action = menu.addAction("Добавить")
         edit_action = menu.addAction("Изменить")
         delete_action = menu.addAction("Удалить")
+        send_action = menu.addAction("Добавить отправить данные авторизации")
 
         action = menu.exec_(self.mapToGlobal(position))
 
@@ -428,6 +479,8 @@ class EstablishmentsTableWidget(QTableWidget):
             self.edit_record()
         elif action == delete_action:
             self.delete_record()
+        elif action == send_action:
+            self.send_auth()
 
     def add_record(self):
         db = DB()
@@ -446,6 +499,7 @@ class EstablishmentsTableWidget(QTableWidget):
         self.pass_input = QLineEdit(dialog)
         layout.addWidget(QLabel("Password:"))
         layout.addWidget(self.pass_input)
+        self.pass_input.setText(generate_password(5, True, False))
 
         layout.addWidget(QLabel("License type:"))
         self.license_combo = QComboBox(dialog)
@@ -564,7 +618,12 @@ class EstablishmentsTableWidget(QTableWidget):
             name = self.name_input.text()
             address = self.address_input.text()
             passw = self.pass_input.text()
-            license = self.license_combo.currentText().split(' ')[0]
+            if len(passw) == 0:
+                passw = generate_password(5, True, False)
+
+            license = self.license_combo.currentText().split(' ')[1]
+            license_id = db.get_license_id_by_name(license)
+
             user = self.user_input.text()
             rep_input = self.rep_input.text()
             video_input = self.video_input.text()
@@ -579,7 +638,7 @@ class EstablishmentsTableWidget(QTableWidget):
             establishment_id = int(
                 self.item(row, 0).text())
             db.cur.execute(
-                f"UPDATE ESTABLISHMENTS SET \"NAME\" = '{name}', ADDRESS = '{address}', PASS = '{passw}', LICENSE_ID = '{license}', OWNER_ID = '{user_id}', REPORT_TYPE = '{rep_input}', VIDEO_PATH = '{video_input}', datelicense_expire = '{date_input}'  WHERE ESTABLISHMENTS_ID = {establishment_id} ")
+                f"UPDATE ESTABLISHMENTS SET \"NAME\" = '{name}', ADDRESS = '{address}', PASS = '{passw}', LICENSE_ID = '{license_id}', OWNER_ID = '{user_id}', REPORT_TYPE = '{rep_input}', VIDEO_PATH = '{video_input}', datelicense_expire = '{date_input}'  WHERE ESTABLISHMENTS_ID = {establishment_id} ")
             db.con.commit()
             self.refresh_table()
 
@@ -594,6 +653,60 @@ class EstablishmentsTableWidget(QTableWidget):
         db.cur.execute(f"DELETE FROM ESTABLISHMENTS WHERE ESTABLISHMENTS_ID = {establishment_id}")
         db.con.commit()
         self.refresh_table()
+
+    def send_auth(self):
+        db = DB()
+        dialog = QDialog(self)
+        layout = QVBoxLayout()
+        dialog.setWindowTitle('Отправить данные авторизации в бот OKOAI')
+        self.text_input = QTextEdit(dialog)
+
+        row = self.currentRow()
+        if row == -1:
+            return
+
+        user_login = db.get_user_login_tg_id(self.item(row, 5).text())
+        if is_valid_email(user_login) is False:
+            print("ОШИБКА: Логин не является валидным email")
+            return
+        layout.addWidget(QLabel("Текст сообщения пользователю: " + user_login))
+        layout.addWidget(self.text_input)
+        if self.item(row, 5).text() is None or self.item(row, 5).text() is None:
+            print("Не установлено имя заведения или пароль")
+            return
+
+        message_template = f"""
+Ласково просимо до системи OKOAI.
+
+    Ваша назва_закладу та пароль для підписки у боті ОКОАІ:
+        
+    Заклад: {self.item(row, 1).text()}
+    Пароль: {self.item(row, 3).text()}
+
+    Посилання на бота в телеграмі https://t.me/OKOAIbot
+
+    Ви можете передати інформацію особам, які також зацікавлені в отриманні аналітики ОКОАІ по цьому закладу
+    
+    
+    З повагою,
+        Команда OKOAI.
+        """
+        self.text_input.setText(message_template)
+
+        dialog.setLayout(layout)
+
+        submit_button = QPushButton("Применить", dialog)
+        submit_button.clicked.connect(dialog.accept)
+        layout.addWidget(submit_button)
+
+        dialog.setLayout(layout)
+
+        result = dialog.exec_()
+        if result == QDialog.Accepted:
+            send_email(user_login, self.text_input.toPlainText())
+            print("Сообщение отправлено")
+
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
