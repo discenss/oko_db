@@ -534,7 +534,7 @@ class EstablishmentsTableWidget(QTableWidget):
             name = self.name_input.text()
             address = self.address_input.text()
             passw = self.pass_input.text()
-            license = self.license_combo.currentText().split(' ')[0]
+            license = db.get_license_id_by_name(self.license_combo.currentText().split(' ')[1])
             user = self.user_input.text()
             rep_input = self.rep_input.text()
             video_input = self.video_input.text()
