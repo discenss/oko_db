@@ -244,6 +244,7 @@ class DB:
         if not user_id:
             return False
         current_money = self.get_money_for_tg_user(telegram_id)
+        if current_money is None: current_money = 0
         new_money = current_money + money
         query = "UPDATE USERS SET MONEY = %s WHERE USER_ID = %s"
         self._execute_query(query, (new_money, user_id))
