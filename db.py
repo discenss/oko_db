@@ -326,6 +326,14 @@ class DB:
             os.rename(temp_file_name, temp_file_name + '.pt')
             return temp_file_name + '.pt'
 
+    def get_est_extra_by_name(self, name):
+        self.cur = self.con.cursor()
+        self.cur.execute(f"SELECT  extra FROM ESTABLISHMENTS WHERE  \"NAME\" = '{name}'")
+        user = self.cur.fetchall()
+        if len(user) == 0:
+            return None
+        return user[0][0]
+    
 def main():
     db = DB()
 
@@ -346,6 +354,7 @@ def main():
     print(db.get_telegram_id(0))
     print(db.get_license_name_and_price(1))
     print(db.get_server_for_task())
+
     db.set_start_task("Test1", '1', '1', 'path1')
     db.set_start_task("Test1", '1', '1', 'path2')
     db.set_start_task("Test1", '1', '1', 'path3')
