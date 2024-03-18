@@ -137,7 +137,7 @@ class DB:
         est_info = self.get_est_info_by_name(est_name)
         if not est_info:
             return "Название не найдено"
-        est_id, _, _, est_pass, _, _, _, _, _ = est_info
+        est_id, _, _, est_pass, _, _, _, _, _, _ = est_info
 
         if est_pass != pass_est:
             return "Неправильный пароль"
@@ -333,7 +333,7 @@ class DB:
         if len(user) == 0:
             return None
         return user[0][0]
-    
+
 def main():
     db = DB()
 
